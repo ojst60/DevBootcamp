@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "outDir": "./build",
+        "noImplicitReturns": false,
+        "allowJs": true,
+        "target": "ES5",
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "strict": true,
+        "module": "CommonJS",
+        "types": [
+            "node",
+            "express"
+        ],
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "rootDir": "./src",
+        "sourceMap": true,
+    },
+    "include": [
+        "./src/**/*"
+    ]
+}

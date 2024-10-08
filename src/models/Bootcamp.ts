@@ -1,4 +1,6 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Error } from "mongoose";
+import slugify from "slugify";
+import { geocoder } from "../utils/geoCoder";
 
 interface IBootcampSchema {
   name: string;
@@ -70,11 +72,10 @@ const BootcampSchema = new Schema<IBootcampSchema>({
     type: {
       type: String,
       enum: ["Point"],
-    
     },
     coordinates: {
       type: [Number],
-     
+
       index: "2dsphere",
     },
     formattedAddress: String,
@@ -83,6 +84,7 @@ const BootcampSchema = new Schema<IBootcampSchema>({
     state: String,
     postcode: String,
     country: String,
+    countryCode: String,
   },
   careers: {
     type: [String],
@@ -130,4 +132,30 @@ const BootcampSchema = new Schema<IBootcampSchema>({
   },
 });
 
+// Create botcamp slug from name
+
+BootcampSchema.pre("save", function (next) {
+  this.nameSlug = slugify(this.name, { lower: true, replacement: "_" });
+  next();
+});
+
+// GeoCode and create location field
+
+BootcampSchema.pre("save", async function (next) {
+  const loc = await geocoder.geocode(this.address);
+
+  // Need to use Zod for infering and validation
+  this.location = {
+    type: "Point",
+    coordinates: [loc[0].longitude, loc[0].latitude] as [number, number],
+    formattedAddress: loc[0].formattedAddress as string,
+    street: loc[0].streetName as string,
+    city: loc[0].city as string,
+    state: loc[0].stateCode as string,
+    postcode: loc[0].zipcode as string,
+    country: loc[0].countryCode as string,
+  };
+  this.address = "a"
+  next()
+});
 export const BootcampModel = mongoose.model("Bootcamp", BootcampSchema);

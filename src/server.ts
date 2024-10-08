@@ -5,27 +5,28 @@ import { connectDB } from "./db";
 import "colors";
 
 import "dotenv/config";
+import { errorHandler } from "./middleware/error";
 
 connectDB();
 
 // Initialise express
 const app = express();
 
-app.use(express.json())
+app.use(express.json());
 
 // Log the request time, http version, method and URL
-if (process.env.ENV === "development") {
+if (process.env.NODE_ENV === "development") {
   app.use(morgan(":date[web] :http-version :method :url"));
 }
 
 app.use("/api/v1/bootcamps", bootcampRouter);
 
+app.use(errorHandler);
+
 // Define port
 const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
-  console.log();
-
   console.log(`Port is running on port ${PORT}`.yellow.bold);
 });
 

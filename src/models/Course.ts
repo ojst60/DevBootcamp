@@ -1,39 +1,43 @@
-import { Schema, model } from "mongoose";
+import { Document, Model, Schema, model } from 'mongoose'
 
 interface ICourseSchema {
-  title: string;
-  description: string;
-  weeks: string;
-  tution: number;
-  minimumSkill: "beginner" | "intermediate" | "advanced";
-  scholarshipAvailable: boolean;
-  bootcamp: typeof Schema.ObjectId;
-  user: string;
-  createdAt: Date;
+  title: string
+  description: string
+  weeks: string
+  tuition: number
+  minimumSkill: 'beginner' | 'intermediate' | 'advanced'
+  scholarshipAvailable: boolean
+  bootcamp: Schema.Types.ObjectId
+  user: string
+  createdAt: Date
 }
 
-const CourseSchema = new Schema<ICourseSchema>({
+export interface ICourseModel extends Model<ICourseSchema, {}> {
+  getAverageCost: (bootcampId: Schema.Types.ObjectId) => void
+}
+
+const CourseSchema = new Schema<ICourseSchema, ICourseModel>({
   title: {
     type: String,
-    required: [true, "Please add a course title"],
+    required: [true, 'Please add a course title'],
     trim: true,
   },
   description: {
     type: String,
-    required: [true, "Please add a course description"],
+    required: [true, 'Please add a course description'],
   },
   weeks: {
     type: String,
-    required: [true, "Please add number of weeks"],
+    required: [true, 'Please add number of weeks'],
   },
-  tution: {
+  tuition: {
     type: Number,
-    required: [true, "Please add a tution cost"],
+    required: [true, 'Please add a tution cost'],
   },
   minimumSkill: {
     type: String,
-    required: [true, "Please add a minimum skill"],
-    enum: ["beginner", "intermediate", "advanced"],
+    required: [true, 'Please add a minimum skill'],
+    enum: ['beginner', 'intermediate', 'advanced'],
   },
   scholarshipAvailable: {
     type: Boolean,
@@ -44,10 +48,44 @@ const CourseSchema = new Schema<ICourseSchema>({
     default: Date.now,
   },
   bootcamp: {
-    type: Schema.ObjectId,
-    ref: "Bootcamp",
+    type: Schema.Types.ObjectId,
+    ref: 'Bootcamp',
     required: true,
   },
-});
+})
 
-export const CourseModel = model("Course", CourseSchema);
+// Static method to get average of cost tuition
+CourseSchema.statics.getAverageCost = async function (bootcampId) {
+  const obj = await this.aggregate([
+    { $match: { bootcamp: bootcampId } },
+    {
+      $group: {
+        _id: '$bootcamp',
+        averageCost: {
+          $avg: '$tuition',
+        },
+      },
+    },
+  ])
+
+  try {
+    await this.db.model('Bootcamp').findByIdAndUpdate(bootcampId, {
+      averageCost: (Math.ceil(obj[0].averageCost) / 10) * 10,
+    })
+  } catch (err) {
+    console.log(err)
+  }
+}
+// Call getAverageCost after save
+CourseSchema.post('save', function () {
+  const modelConstructor = this.constructor as ICourseModel
+  modelConstructor.getAverageCost(this.bootcamp)
+})
+
+// Call getAverageCost before save
+CourseSchema.post('deleteOne', { document: true, query: false }, function () {
+  const modelConstructor = this.constructor as ICourseModel
+  modelConstructor.getAverageCost(this.bootcamp)
+})
+
+export const CourseModel = model('Course', CourseSchema)

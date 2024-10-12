@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from 'express'
 import {
   getBootcamp,
   getBootcamps,
@@ -6,18 +6,35 @@ import {
   createBootcamp,
   updateBootcamp,
   getBootcampsWithinRadius,
-} from "../controllers/bootcamps";
+  bootcampPhotoUpload,
+} from '../controllers/bootcamps'
+import { addCourse, getCourses } from '../controllers/courses'
+import { coursesRouter } from './courses'
+import { advancedResults } from '../middleware/advancedResult'
+import { BootcampModel } from '../models/Bootcamp'
 
-const router = Router();
+const router = Router()
 
-router.route("/").get(getBootcamps).post(createBootcamp);
+router.use('/:bootcampID/courses', coursesRouter)
 
 router
-  .route("/:id")
-  .get(getBootcamp)
-  .put(updateBootcamp)
-  .delete(deleteBootcamp);
+  .route('/')
+  .get(
+    advancedResults({
+      model: BootcampModel,
+      populate: {path: 'courses'},
+      modelType: 'bootcamp',
+    }),
+    getBootcamps
+  )
+  .post(createBootcamp)
 
-  router.route("/radius/:postcode/:distance").get(getBootcampsWithinRadius)
+router.route('/:id').get(getBootcamp).put(updateBootcamp).delete(deleteBootcamp)
 
-export { router as bootcampRouter };
+router.route('/:id/photo').put(bootcampPhotoUpload)
+
+router.route('/:bootcampId/courses').get(getCourses).post(addCourse)
+
+router.route('/radius/:postcode/:distance').get(getBootcampsWithinRadius)
+
+export { router as bootcampRouter }
